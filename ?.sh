@@ -21,4 +21,4 @@ if [ -f "$REQS" ]; then
 fi
 
 # Run the script
-python "$SCRIPT"
+python3 "$SCRIPT"
