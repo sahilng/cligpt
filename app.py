@@ -1,61 +1,71 @@
 import os
 from openai import OpenAI
 from dotenv import dotenv_values
+from yaspin import yaspin
+from yaspin.spinners import Spinners
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 env_path = os.path.join(BASE_DIR, '.env')
-
 env_values = dotenv_values(env_path)
 
 OPENAI_API_KEY = env_values.get('OPENAI_API_KEY') or input('OPENAI_API_KEY=')
-
-client = OpenAI(api_key=OPENAI_API_KEY)
-
 MODEL = env_values.get('MODEL') or input('MODEL=')
-
 stream_bool = env_values.get('STREAM', '').lower().strip() == 'true'
 
+client = OpenAI(api_key=OPENAI_API_KEY)
 messages = []
 
 try:
-	while True:
-		messages.append(
-			{
-				"role": "user",
-				"content": input('\n> '),
-			},
-		)
+    while True:
+        messages.append({
+            "role": "user",
+            "content": input('\n> '),
+        })
+        print()
 
-		response = client.responses.create(
-			model=MODEL,
-			instructions="You are an assistant that is called from the CLI. Keep that in mind when responding, for the sake of brevity, format, etc. If the user asks to exit, advise them to use Ctrl-C.",
-			input=messages,
-			stream=stream_bool,
-		)
+        if stream_bool:
+            with yaspin(Spinners.dots, color="cyan", text="") as sp:
+                response = client.responses.create(
+                    model=MODEL,
+                    instructions="You are an assistant that is called from the CLI. Keep that in mind when responding, for the sake of brevity, format, etc. If the user asks to exit, advise them to use Ctrl-C.",
+                    input=messages,
+                    stream=True,
+                )
 
-		if stream_bool:
-			print()
-			final_output = ''
-			for event in response:
-				if event.type == "response.output_text.delta":
-					print(event.delta, end='')
-				if event.type == "response.output_text.done":
-					final_output = event.text
-			print()
+                first_token = False
+                final_output = ''
 
-		else:
-			print()
-			final_output = response.output_text
-			print(final_output)
-		
-		messages.append(
-			{
-				"role": "assistant",
-				"content": final_output,
-			},
-		)
+                for event in response:
+                    if event.type == "response.output_text.delta":
+                        if not first_token:
+                            sp.stop()  # stop spinner when first delta arrives
+                            print("\r", end="")  # clear spinner
+                            first_token = True
+                        print(event.delta, end='', flush=True)
+
+                    if event.type == "response.output_text.done":
+                        final_output = event.text
+
+                print()
+
+        else:
+            with yaspin(Spinners.dots, color="cyan", text="") as sp:
+                response = client.responses.create(
+                    model=MODEL,
+                    instructions="You are an assistant that is called from the CLI. Keep that in mind when responding, for the sake of brevity, format, etc. If the user asks to exit, advise them to use Ctrl-C.",
+                    input=messages,
+                    stream=False,
+                )
+                sp.stop()
+                print("\r", end="")
+
+            final_output = response.output_text
+            print(final_output)
+
+        messages.append({
+            "role": "assistant",
+            "content": final_output,
+        })
 
 except KeyboardInterrupt:
-    print()
-    print()
+    print("\n")
