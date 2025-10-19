@@ -1,5 +1,4 @@
 # We assume this script is sourced: source shortcut.sh
-set -e  # exit on any error
 
 # Determine the directory of this script (portable!)
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
