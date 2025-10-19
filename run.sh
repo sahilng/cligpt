@@ -4,7 +4,7 @@ set -e  # exit on any error
 # Determine the directory of this script (portable!)
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV_DIR="$BASE_DIR/venv"
-SCRIPT="$BASE_DIR/?.py"
+SCRIPT="$BASE_DIR/app.py"
 REQS="$BASE_DIR/requirements.txt"
 
 # Create virtual environment if missing
