@@ -13,7 +13,7 @@ else
 fi
 
 # Add alias if not already present
-if ! grep -q "alias ?=" "$shell_rc" 2>/dev/null; then
+if ! grep -q "alias '?'=" "$shell_rc" 2>/dev/null; then
   echo "alias '?'=\"$BASE_DIR/run.sh\"" >> "$shell_rc"
   echo "✅ Added alias to $shell_rc"
 else
