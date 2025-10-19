@@ -1,6 +1,6 @@
 # cligpt (aka ?)
 
-A quick and easy way to use GPT in the CLI.
+*A quick and easy way to use GPT in the CLI.*
 
 ## Usage
 
