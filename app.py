@@ -4,6 +4,9 @@ from dotenv import dotenv_values
 from yaspin import yaspin
 from yaspin.spinners import Spinners
 
+CYAN = "\033[36m"
+RESET = "\033[0m"
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(BASE_DIR, '.env')
 env_values = dotenv_values(env_path)
@@ -38,15 +41,16 @@ try:
                 for event in response:
                     if event.type == "response.output_text.delta":
                         if not first_token:
-                            sp.stop()  # stop spinner when first delta arrives
-                            print("\r", end="")  # clear spinner
+                            sp.stop()
+                            print("\r", end="")
+                            print(CYAN, end="")  # Start cyan text
                             first_token = True
                         print(event.delta, end='', flush=True)
 
                     if event.type == "response.output_text.done":
                         final_output = event.text
 
-                print()
+                print(RESET)  # Reset color
 
         else:
             with yaspin(Spinners.dots, color="cyan", text="") as sp:
@@ -60,7 +64,7 @@ try:
                 print("\r", end="")
 
             final_output = response.output_text
-            print(final_output)
+            print(f"{CYAN}{final_output}{RESET}")
 
         messages.append({
             "role": "assistant",
