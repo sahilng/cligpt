@@ -10,7 +10,7 @@ env_values = dotenv_values(env_path)
 
 OPENAI_API_KEY = env_values.get('OPENAI_API_KEY') or input('OPENAI_API_KEY=')
 MODEL = env_values.get('MODEL') or input('MODEL=')
-stream_bool = env_values.get('STREAM', '').lower().strip() == 'true'
+STREAM = env_values.get('STREAM', '').lower().strip() == 'true'
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 messages = []
@@ -23,7 +23,7 @@ try:
         })
         print()
 
-        if stream_bool:
+        if STREAM:
             with yaspin(Spinners.dots, color="cyan", text="") as sp:
                 response = client.responses.create(
                     model=MODEL,
