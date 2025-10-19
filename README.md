@@ -9,4 +9,3 @@ Create a `.env` based on `.env.example` to save API key, model, streaming, and w
 To add the `?` shortcut, do `source shortcut.sh`.
 
 Then, use `?` in your terminal to launch cligpt from anywhere.
-
