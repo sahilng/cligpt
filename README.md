@@ -2,11 +2,11 @@
 
 A quick and easy way to use GPT in the CLI.
 
-To use, execute `run.sh` (prerequisite: Python).
+To use, do `./run.sh` (prerequisite: Python).
 
 Create a `.env` based on `.env.example` to save API key, model, and streaming preference.
 
-To add the `?` shortcut, do `./shortcut.sh`.
+To add the `?` shortcut, do `source shortcut.sh`.
 
 Then, use `?` in your terminal to launch cligpt from anywhere.
 
