@@ -14,6 +14,9 @@ env_values = dotenv_values(env_path)
 OPENAI_API_KEY = env_values.get('OPENAI_API_KEY') or input('OPENAI_API_KEY=')
 MODEL = env_values.get('MODEL') or input('MODEL=')
 STREAM = env_values.get('STREAM', '').lower().strip() == 'true'
+WEBSEARCH = env_values.get('WEBSEARCH', '').lower().strip() == 'true'
+
+TOOLS = [{"type": "web_search"}] if WEBSEARCH else []
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 messages = []
@@ -33,6 +36,7 @@ try:
                     instructions="You are an assistant that is called from the CLI. Keep that in mind when responding, for the sake of brevity, format, etc. If the user asks to exit, advise them to use Ctrl-C.",
                     input=messages,
                     stream=True,
+                    tools=TOOLS
                 )
 
                 first_token = False
@@ -59,6 +63,7 @@ try:
                     instructions="You are an assistant that is called from the CLI. Keep that in mind when responding, for the sake of brevity, format, etc. If the user asks to exit, advise them to use Ctrl-C.",
                     input=messages,
                     stream=False,
+                    tools=TOOLS
                 )
                 sp.stop()
                 print("\r", end="")
