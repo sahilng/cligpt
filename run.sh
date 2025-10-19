@@ -9,7 +9,7 @@ REQS="$BASE_DIR/requirements.txt"
 
 # Create virtual environment if missing
 if [ ! -d "$VENV_DIR" ]; then
-  echo "Setting up..."
+  echo "Initial setup..."
   python3 -m venv "$VENV_DIR"
 fi
 
