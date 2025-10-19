@@ -57,4 +57,4 @@ try:
 		)
 
 except KeyboardInterrupt:
-    pass
+    print()
