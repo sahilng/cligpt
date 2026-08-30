@@ -3,8 +3,11 @@ from openai import OpenAI
 from dotenv import dotenv_values
 from yaspin import yaspin
 from yaspin.spinners import Spinners
+from prompt_toolkit import PromptSession
+from prompt_toolkit.key_binding import KeyBindings
 
 CYAN = "\033[36m"
+GRAY = "\033[90m"
 RESET = "\033[0m"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,11 +24,27 @@ TOOLS = [{"type": "web_search"}] if WEBSEARCH else []
 client = OpenAI(api_key=OPENAI_API_KEY)
 messages = []
 
+kb = KeyBindings()
+
+@kb.add('enter')
+def handle_enter(event):
+    event.current_buffer.insert_text('\n')
+
+@kb.add('escape', 'enter')
+def handle_submit(event):
+    event.current_buffer.validate_and_handle()
+
+prompt_session = PromptSession(key_bindings=kb, multiline=True)
+
+print(f"{GRAY}Model: {MODEL}{RESET}")
+print(f"{GRAY}Enter to newline, Alt+Enter to submit. Ctrl-C to exit.{RESET}")
+
 try:
     while True:
+        user_input = prompt_session.prompt('\n> ')
         messages.append({
             "role": "user",
-            "content": input('\n> '),
+            "content": user_input,
         })
         print()
 
