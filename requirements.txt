@@ -2,3 +2,4 @@ openai
 python-dotenv
 yaspin
 prompt_toolkit
+rich

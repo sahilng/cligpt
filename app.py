@@ -5,6 +5,8 @@ from yaspin import yaspin
 from yaspin.spinners import Spinners
 from prompt_toolkit import PromptSession
 from prompt_toolkit.key_binding import KeyBindings
+from rich.console import Console
+from rich.markdown import Markdown
 
 CYAN = "\033[36m"
 GRAY = "\033[90m"
@@ -18,11 +20,19 @@ OPENAI_API_KEY = env_values.get('OPENAI_API_KEY') or input('OPENAI_API_KEY=')
 MODEL = env_values.get('MODEL') or input('MODEL=')
 STREAM = env_values.get('STREAM', '').lower().strip() == 'true'
 WEBSEARCH = env_values.get('WEBSEARCH', '').lower().strip() == 'true'
+MARKDOWN = env_values.get('MARKDOWN', 'true').lower().strip() == 'true'
 
 TOOLS = [{"type": "web_search"}] if WEBSEARCH else []
 
 client = OpenAI(api_key=OPENAI_API_KEY)
+console = Console()
 messages = []
+
+def print_assistant_output(text):
+    if MARKDOWN:
+        console.print(Markdown(text))
+    else:
+        print(f"{CYAN}{text}{RESET}")
 
 kb = KeyBindings()
 
@@ -63,6 +73,9 @@ try:
 
                 for event in response:
                     if event.type == "response.output_text.delta":
+                        if MARKDOWN:
+                            continue
+
                         if not first_token:
                             sp.stop()
                             print("\r", end="")
@@ -73,7 +86,12 @@ try:
                     if event.type == "response.output_text.done":
                         final_output = event.text
 
-                print(RESET)  # Reset color
+                if MARKDOWN:
+                    sp.stop()
+                    print("\r", end="")
+                    print_assistant_output(final_output)
+                else:
+                    print(RESET)  # Reset color
 
         else:
             with yaspin(Spinners.dots, color="cyan", text="") as sp:
@@ -88,7 +106,7 @@ try:
                 print("\r", end="")
 
             final_output = response.output_text
-            print(f"{CYAN}{final_output}{RESET}")
+            print_assistant_output(final_output)
 
         messages.append({
             "role": "assistant",

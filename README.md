@@ -10,6 +10,8 @@ Then, use `?` in your terminal to launch cligpt from anywhere.
 
 Create a `.env` based on `.env.example` to save API key, model, streaming, and web-search preferences.
 
+Set `MARKDOWN=false` to disable terminal markdown rendering. When `STREAM=true` and markdown rendering is enabled, responses render after completion so lists, code blocks, and tables format correctly.
+
 ### Key bindings
 
 | Key | Action |
