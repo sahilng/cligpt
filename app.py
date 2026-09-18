@@ -4,7 +4,7 @@ from dotenv import dotenv_values
 from yaspin import yaspin
 from yaspin.spinners import Spinners
 from prompt_toolkit import PromptSession
-from prompt_toolkit.key_binding import KeyBindings
+from input_bindings import create_key_bindings
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -34,20 +34,10 @@ def print_assistant_output(text):
     else:
         print(f"{CYAN}{text}{RESET}")
 
-kb = KeyBindings()
-
-@kb.add('enter')
-def handle_enter(event):
-    event.current_buffer.insert_text('\n')
-
-@kb.add('escape', 'enter')
-def handle_submit(event):
-    event.current_buffer.validate_and_handle()
-
-prompt_session = PromptSession(key_bindings=kb, multiline=True)
+prompt_session = PromptSession(key_bindings=create_key_bindings(), multiline=True)
 
 print(f"{GRAY}Model: {MODEL}{RESET}")
-print(f"{GRAY}Enter to newline, Alt+Enter to submit. Ctrl-C to exit.{RESET}")
+print(f"{GRAY}Enter for newline; Enter twice to submit. Multiline paste supported. Ctrl-C to exit.{RESET}")
 
 try:
     while True:
@@ -113,5 +103,5 @@ try:
             "content": final_output,
         })
 
-except KeyboardInterrupt:
+except (KeyboardInterrupt, EOFError):
     print("\n")
