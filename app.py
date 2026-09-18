@@ -4,6 +4,7 @@ from dotenv import dotenv_values
 from yaspin import yaspin
 from yaspin.spinners import Spinners
 from prompt_toolkit import PromptSession
+from prompt_toolkit.formatted_text import ANSI
 from input_bindings import create_key_bindings
 from rich.console import Console
 from rich.markdown import Markdown
@@ -24,6 +25,23 @@ MARKDOWN = env_values.get('MARKDOWN', 'true').lower().strip() == 'true'
 
 TOOLS = [{"type": "web_search"}] if WEBSEARCH else []
 
+INSTRUCTIONS = (
+    "You are an assistant in an interactive terminal CLI. "
+    "Keep replies concise and readable at typical terminal widths. "
+    "The terminal supports ANSI escape sequences for colors and text styles. "
+    "When using ANSI styling, emit actual escape characters, not literal escaped "
+    "strings such as \\x1b or \\033, and reset styling afterward. "
+    "If the user asks to exit, advise them to use Ctrl-C. "
+    + (
+        "Markdown rendering is enabled via Rich: use Markdown for headings, lists, "
+        "code blocks, and tables. Prefer Markdown for ordinary formatting; "
+        "use ANSI colors when requested."
+        if MARKDOWN else
+        "Markdown rendering is disabled: output is printed directly to the terminal. "
+        "Use plain text and optional ANSI styling instead of Markdown formatting."
+    )
+)
+
 client = OpenAI(api_key=OPENAI_API_KEY)
 console = Console()
 messages = []
@@ -41,7 +59,7 @@ print(f"{GRAY}Enter for newline; Enter twice to submit. Multiline paste supporte
 
 try:
     while True:
-        user_input = prompt_session.prompt('\n> ')
+        user_input = prompt_session.prompt(ANSI(f'\n{CYAN}>{RESET} '))
         messages.append({
             "role": "user",
             "content": user_input,
@@ -52,7 +70,7 @@ try:
             with yaspin(Spinners.dots, color="cyan", text="") as sp:
                 response = client.responses.create(
                     model=MODEL,
-                    instructions="You are an assistant that is called from the CLI. Keep that in mind when responding, for the sake of brevity, format, etc. If the user asks to exit, advise them to use Ctrl-C.",
+                    instructions=INSTRUCTIONS,
                     input=messages,
                     stream=True,
                     tools=TOOLS
@@ -87,7 +105,7 @@ try:
             with yaspin(Spinners.dots, color="cyan", text="") as sp:
                 response = client.responses.create(
                     model=MODEL,
-                    instructions="You are an assistant that is called from the CLI. Keep that in mind when responding, for the sake of brevity, format, etc. If the user asks to exit, advise them to use Ctrl-C.",
+                    instructions=INSTRUCTIONS,
                     input=messages,
                     stream=False,
                     tools=TOOLS
