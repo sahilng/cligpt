@@ -5,12 +5,14 @@
 ## Usage
 
 1. Install Python 3 with `pip` and `venv` support, then open a terminal in this repository.
-2. Copy the example configuration with `cp .env.example .env`. Edit `.env` to set your API key, model, streaming, and web-search preferences.
+2. Copy the example configuration with `cp .env.example .env`. Edit `.env` to set your API key, model, reasoning effort, streaming, and web-search preferences.
 3. Run `./run.sh` to launch cligpt. It creates a virtual environment if needed and installs dependencies automatically.
 4. To add the optional `?` shortcut, exit cligpt with `Ctrl-C`, then run `source shortcut.sh` from the repository in Bash or Zsh. This adds the alias to your shell configuration and activates it in the current shell.
 5. Use `?` in your terminal to launch cligpt from anywhere.
 
 Set `MARKDOWN=false` to disable terminal markdown rendering. When `STREAM=true` and markdown rendering is enabled, responses render after completion so lists, code blocks, and tables format correctly.
+
+Set `REASONING_EFFORT` to a value supported by your model, such as `low`, `medium`, or `high`. If it is missing or blank, the app uses `medium`.
 
 ### Key bindings
 

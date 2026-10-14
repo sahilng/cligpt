@@ -22,8 +22,10 @@ MODEL = env_values.get('MODEL') or input('MODEL=')
 STREAM = env_values.get('STREAM', '').lower().strip() == 'true'
 WEBSEARCH = env_values.get('WEBSEARCH', '').lower().strip() == 'true'
 MARKDOWN = env_values.get('MARKDOWN', 'true').lower().strip() == 'true'
+REASONING_EFFORT = (env_values.get('REASONING_EFFORT') or '').lower().strip() or 'medium'
 
 TOOLS = [{"type": "web_search"}] if WEBSEARCH else []
+REASONING_OPTIONS = {"reasoning": {"effort": REASONING_EFFORT}}
 
 INSTRUCTIONS = (
     "You are an assistant in an interactive terminal CLI. "
@@ -73,7 +75,8 @@ try:
                     instructions=INSTRUCTIONS,
                     input=messages,
                     stream=True,
-                    tools=TOOLS
+                    tools=TOOLS,
+                    **REASONING_OPTIONS
                 )
 
                 first_token = False
@@ -108,7 +111,8 @@ try:
                     instructions=INSTRUCTIONS,
                     input=messages,
                     stream=False,
-                    tools=TOOLS
+                    tools=TOOLS,
+                    **REASONING_OPTIONS
                 )
                 sp.stop()
                 print("\r", end="")
