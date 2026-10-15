@@ -1,17 +1,10 @@
+import asyncio
 import os
-from openai import OpenAI
-from dotenv import dotenv_values
-from yaspin import yaspin
-from yaspin.spinners import Spinners
-from prompt_toolkit import PromptSession
-from prompt_toolkit.formatted_text import ANSI
-from input_bindings import create_key_bindings
-from rich.console import Console
-from rich.markdown import Markdown
 
-CYAN = "\033[36m"
-GRAY = "\033[90m"
-RESET = "\033[0m"
+from openai import AsyncOpenAI
+from dotenv import dotenv_values
+
+from terminal_ui import TerminalUI
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(BASE_DIR, '.env')
@@ -22,9 +15,11 @@ MODEL = env_values.get('MODEL') or input('MODEL=')
 STREAM = env_values.get('STREAM', '').lower().strip() == 'true'
 WEBSEARCH = env_values.get('WEBSEARCH', '').lower().strip() == 'true'
 MARKDOWN = env_values.get('MARKDOWN', 'true').lower().strip() == 'true'
+
 REASONING_EFFORT = (env_values.get('REASONING_EFFORT') or '').lower().strip() or 'medium'
 
 TOOLS = [{"type": "web_search"}] if WEBSEARCH else []
+
 REASONING_OPTIONS = {"reasoning": {"effort": REASONING_EFFORT}}
 
 INSTRUCTIONS = (
@@ -44,86 +39,63 @@ INSTRUCTIONS = (
     )
 )
 
-client = OpenAI(api_key=OPENAI_API_KEY)
-console = Console()
-messages = []
+async def main():
+    client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    ui = TerminalUI(MODEL, markdown=MARKDOWN)
+    messages = []
 
-def print_assistant_output(text):
-    if MARKDOWN:
-        console.print(Markdown(text))
-    else:
-        print(f"{CYAN}{text}{RESET}")
+    async def respond(user_input):
+        request_messages = messages + [{"role": "user", "content": user_input}]
 
-prompt_session = PromptSession(key_bindings=create_key_bindings(), multiline=True)
+        async def request():
+            response = await client.responses.create(
+                model=MODEL,
+                instructions=INSTRUCTIONS,
+                input=request_messages,
+                stream=STREAM,
+                tools=TOOLS,
+                **REASONING_OPTIONS,
+            )
+            if not STREAM:
+                return response.output_text, False
 
-print(f"{GRAY}Model: {MODEL}{RESET}")
-print(f"{GRAY}Enter for newline; Enter twice to submit. Multiline paste supported. Ctrl-C to exit.{RESET}")
-
-try:
-    while True:
-        user_input = prompt_session.prompt(ANSI(f'\n{CYAN}>{RESET} '))
-        messages.append({
-            "role": "user",
-            "content": user_input,
-        })
-        print()
-
-        if STREAM:
-            with yaspin(Spinners.dots, color="cyan", text="") as sp:
-                response = client.responses.create(
-                    model=MODEL,
-                    instructions=INSTRUCTIONS,
-                    input=messages,
-                    stream=True,
-                    tools=TOOLS,
-                    **REASONING_OPTIONS
-                )
-
-                first_token = False
-                final_output = ''
-
-                for event in response:
+            chunks = []
+            final_parts = []
+            started = False
+            # Close the stream on completion or failure.
+            async with response:
+                async for event in response:
                     if event.type == "response.output_text.delta":
-                        if MARKDOWN:
-                            continue
+                        chunks.append(event.delta)
+                        if not MARKDOWN:
+                            if not started:
+                                ui.append_response("")
+                                started = True
+                            ui.update_response("".join(chunks))
+                    elif event.type == "response.output_text.done":
+                        final_parts.append(event.text)
+                    elif event.type in ("response.failed", "response.incomplete", "error"):
+                        raise RuntimeError("The response did not complete. Please try again.")
+            return "\n".join(final_parts) if final_parts else "".join(chunks), started
 
-                        if not first_token:
-                            sp.stop()
-                            print("\r", end="")
-                            print(CYAN, end="")  # Start cyan text
-                            first_token = True
-                        print(event.delta, end='', flush=True)
-
-                    if event.type == "response.output_text.done":
-                        final_output = event.text
-
-                if MARKDOWN:
-                    sp.stop()
-                    print("\r", end="")
-                    print_assistant_output(final_output)
-                else:
-                    print(RESET)  # Reset color
-
+        final_output, streamed = await request()
+        if streamed:
+            ui.update_response(final_output)
         else:
-            with yaspin(Spinners.dots, color="cyan", text="") as sp:
-                response = client.responses.create(
-                    model=MODEL,
-                    instructions=INSTRUCTIONS,
-                    input=messages,
-                    stream=False,
-                    tools=TOOLS,
-                    **REASONING_OPTIONS
-                )
-                sp.stop()
-                print("\r", end="")
+            ui.append_response(final_output)
+        messages.extend([
+            {"role": "user", "content": user_input},
+            {"role": "assistant", "content": final_output},
+        ])
 
-            final_output = response.output_text
-            print_assistant_output(final_output)
+    try:
+        await ui.run(respond)
+    finally:
+        await client.close()
 
-        messages.append({
-            "role": "assistant",
-            "content": final_output,
-        })
 
-except (KeyboardInterrupt, EOFError):
-    print("\n")
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, EOFError):
+        pass
