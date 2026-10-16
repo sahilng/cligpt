@@ -14,21 +14,22 @@ Set `MARKDOWN=false` to disable terminal markdown rendering. When `STREAM=true` 
 
 Set `REASONING_EFFORT` to a value supported by your model, such as `low`, `medium`, or `high`. If it is missing or blank, the app uses `medium`.
 
+If the API key is missing, the CLI asks for it without echoing it or adding it to line-editing history. Request failures return you to the prompt; failed or incomplete turns are excluded from conversation context.
+
 ### Key bindings
 
 | Key | Action |
 |-----|--------|
-| `Enter` | Insert a newline |
+| `Enter` | Accept the current line and continue on the next line |
 | `Enter` twice | Submit, keeping the newline from the first press |
 | `\` then `Enter` | Insert a newline and remove the backslash; the next `Enter` also inserts a newline (use for blank lines) |
 | Paste | Insert text, preserving newlines; press `Enter` twice afterward to submit |
-| `Esc`, then `Enter` | Submit literally, including a trailing backslash (press in quick succession) |
 | `Ctrl-C` | Exit |
 
-The two Enter presses must be consecutive, with no timing requirement. Typing, pasting, or moving the cursor between them starts over. The second press submits without adding another newline.
+Input uses Python's native line editor (`readline`), with normal terminal scrollback. Edit the current line with the usual shell shortcuts and use up/down for history. Once you press Enter, that line becomes terminal output; an empty continuation line submits the message. Ctrl-C exits and leaves the conversation visible.
 
-Multiline paste uses bracketed paste, which keeps pasted newlines from counting as Enter presses. Paste normally in macOS Terminal, review the text, then press `Enter` twice to send. Use `Esc`, then `Enter` to submit immediately without adding a newline, including text ending in a literal backslash.
+On terminals with readline bracketed-paste support, paste normally, review the text, then press Enter twice to send. Esc/Alt+Enter immediate submission is no longer a custom binding; modified keys follow your native line editor's configuration.
 
-`Alt+Enter` also submits literally when your terminal sends Escape/Meta. Modified Enter shortcuts may arrive as plain `Enter`, so the main controls require no modifier-key configuration.
+GNU readline may turn CRLF line endings in pasted Windows text into extra blank lines. Paste text with LF line endings to preserve its exact spacing. Without bracketed-paste support, pasted blank lines can submit a message early.
 
 ![cligpt screenshot](screenshot.png)

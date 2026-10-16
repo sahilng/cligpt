@@ -1,11 +1,11 @@
 import os
-from openai import OpenAI
+from getpass import getpass
+
+from openai import OpenAI, OpenAIError
 from dotenv import dotenv_values
 from yaspin import yaspin
 from yaspin.spinners import Spinners
-from prompt_toolkit import PromptSession
-from prompt_toolkit.formatted_text import ANSI
-from input_bindings import create_key_bindings
+from terminal_input import read_message
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -17,8 +17,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(BASE_DIR, '.env')
 env_values = dotenv_values(env_path)
 
-OPENAI_API_KEY = env_values.get('OPENAI_API_KEY') or input('OPENAI_API_KEY=')
-MODEL = env_values.get('MODEL') or input('MODEL=')
+OPENAI_API_KEY = env_values.get('OPENAI_API_KEY')
+MODEL = env_values.get('MODEL')
 STREAM = env_values.get('STREAM', '').lower().strip() == 'true'
 WEBSEARCH = env_values.get('WEBSEARCH', '').lower().strip() == 'true'
 MARKDOWN = env_values.get('MARKDOWN', 'true').lower().strip() == 'true'
@@ -44,9 +44,23 @@ INSTRUCTIONS = (
     )
 )
 
-client = OpenAI(api_key=OPENAI_API_KEY)
 console = Console()
-messages = []
+
+
+class ResponseError(Exception):
+    """A response failed, ended early, or contained no text to display."""
+
+
+def completed_text(response):
+    if response.status != 'completed':
+        error = getattr(response, 'error', None)
+        incomplete = getattr(response, 'incomplete_details', None)
+        detail = getattr(error, 'message', None) or getattr(incomplete, 'reason', None)
+        raise ResponseError(f'Response {response.status}' + (f': {detail}' if detail else '.'))
+    if not response.output_text:
+        raise ResponseError('The response completed without a text reply.')
+    return response.output_text
+
 
 def print_assistant_output(text):
     if MARKDOWN:
@@ -54,76 +68,75 @@ def print_assistant_output(text):
     else:
         print(f"{CYAN}{text}{RESET}")
 
-prompt_session = PromptSession(key_bindings=create_key_bindings(), multiline=True)
+def request_response(client, model, messages):
+    spinner = yaspin(Spinners.dots, color='cyan', text='')
+    spinner.start()
+    spinning = True
+    plain_started = False
 
-print(f"{GRAY}Model: {MODEL}{RESET}")
-print(f"{GRAY}Enter for newline; Enter twice to submit. Multiline paste supported. Ctrl-C to exit.{RESET}")
+    def stop_spinner():
+        nonlocal spinning
+        if spinning:
+            spinner.stop()
+            spinning = False
 
-try:
-    while True:
-        user_input = prompt_session.prompt(ANSI(f'\n{CYAN}>{RESET} '))
-        messages.append({
-            "role": "user",
-            "content": user_input,
-        })
-        print()
-
+    try:
+        response = client.responses.create(
+            model=model, instructions=INSTRUCTIONS, input=messages,
+            stream=STREAM, tools=TOOLS, **REASONING_OPTIONS,
+        )
         if STREAM:
-            with yaspin(Spinners.dots, color="cyan", text="") as sp:
-                response = client.responses.create(
-                    model=MODEL,
-                    instructions=INSTRUCTIONS,
-                    input=messages,
-                    stream=True,
-                    tools=TOOLS,
-                    **REASONING_OPTIONS
-                )
-
-                first_token = False
-                final_output = ''
-
+            final_response = None
+            with response:
                 for event in response:
-                    if event.type == "response.output_text.delta":
-                        if MARKDOWN:
-                            continue
-
-                        if not first_token:
-                            sp.stop()
-                            print("\r", end="")
-                            print(CYAN, end="")  # Start cyan text
-                            first_token = True
+                    if event.type == 'response.output_text.delta' and not MARKDOWN:
+                        if not plain_started:
+                            stop_spinner()
+                            print(CYAN, end='')
+                            plain_started = True
                         print(event.delta, end='', flush=True)
-
-                    if event.type == "response.output_text.done":
-                        final_output = event.text
-
-                if MARKDOWN:
-                    sp.stop()
-                    print("\r", end="")
-                    print_assistant_output(final_output)
-                else:
-                    print(RESET)  # Reset color
-
+                    elif event.type == 'response.completed':
+                        final_response = event.response
+                    elif event.type in ('response.failed', 'response.incomplete'):
+                        completed_text(event.response)
+                    elif event.type == 'error':
+                        raise ResponseError(event.message)
+            if final_response is None:
+                raise ResponseError('The response stream ended before completion.')
+            final_output = completed_text(final_response)
         else:
-            with yaspin(Spinners.dots, color="cyan", text="") as sp:
-                response = client.responses.create(
-                    model=MODEL,
-                    instructions=INSTRUCTIONS,
-                    input=messages,
-                    stream=False,
-                    tools=TOOLS,
-                    **REASONING_OPTIONS
-                )
-                sp.stop()
-                print("\r", end="")
-
-            final_output = response.output_text
+            final_output = completed_text(response)
+        stop_spinner()
+        if not plain_started:
             print_assistant_output(final_output)
+        return final_output
+    finally:
+        stop_spinner()
+        if plain_started:
+            print(RESET)
 
-        messages.append({
-            "role": "assistant",
-            "content": final_output,
-        })
 
-except (KeyboardInterrupt, EOFError):
-    print("\n")
+def main():
+    try:
+        api_key = OPENAI_API_KEY or getpass('OPENAI_API_KEY=')
+        model = MODEL or input('MODEL=')
+        with OpenAI(api_key=api_key) as client:
+            print(f'{GRAY}Model: {model}{RESET}')
+            print(f'{GRAY}Enter for newline; Enter twice to submit. Multiline paste supported. Ctrl-C to exit.{RESET}')
+            messages = []
+            while True:
+                print()
+                user_input = read_message()
+                user_message = {'role': 'user', 'content': user_input}
+                try:
+                    final_output = request_response(client, model, messages + [user_message])
+                except (OpenAIError, ResponseError) as error:
+                    print(f'Request failed: {error}')
+                    continue
+                messages.extend([user_message, {'role': 'assistant', 'content': final_output}])
+    except (KeyboardInterrupt, EOFError):
+        print(f'{RESET}\n')
+
+
+if __name__ == '__main__':
+    main()
