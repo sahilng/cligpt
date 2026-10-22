@@ -144,7 +144,9 @@ def main():
         model = MODEL or input('MODEL=')
         with OpenAI(api_key=api_key) as client:
             print(f'{GRAY}Model: {model}{RESET}')
-            print(f'{GRAY}Enter for newline; Enter twice to submit. Multiline paste supported. Ctrl-C to exit.{RESET}')
+            print(f'{GRAY}Reasoning: {REASONING_EFFORT}\n'
+                  f'Enter twice to submit\n'
+                  f'Ctrl-C to exit{RESET}')
             messages = []
             while True:
                 print()
