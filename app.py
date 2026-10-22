@@ -143,9 +143,8 @@ def main():
         api_key = OPENAI_API_KEY or getpass('OPENAI_API_KEY=')
         model = MODEL or input('MODEL=')
         with OpenAI(api_key=api_key) as client:
-            print(f'{GRAY}Model: {model}{RESET}')
-            print(f'{GRAY}Reasoning: {REASONING_EFFORT}\n'
-                  f'Enter twice to submit\n'
+            print(f'{GRAY}{model} {REASONING_EFFORT}{RESET}')
+            print(f'{GRAY}Enter twice to submit\n'
                   f'Ctrl-C to exit{RESET}')
             messages = []
             while True:
