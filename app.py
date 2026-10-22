@@ -23,7 +23,7 @@ MODEL = env_values.get('MODEL')
 STREAM = env_values.get('STREAM', '').lower().strip() == 'true'
 WEBSEARCH = env_values.get('WEBSEARCH', '').lower().strip() == 'true'
 MARKDOWN = env_values.get('MARKDOWN', 'true').lower().strip() == 'true'
-REASONING_EFFORT = (env_values.get('REASONING_EFFORT') or '').lower().strip() or 'medium'
+REASONING_EFFORT = (env_values.get('REASONING_EFFORT') or '').lower().strip() or 'low'
 
 TOOLS = [{"type": "web_search"}] if WEBSEARCH else []
 REASONING_OPTIONS = {"reasoning": {"effort": REASONING_EFFORT}}
