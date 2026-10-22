@@ -7,7 +7,8 @@ from yaspin import yaspin
 from yaspin.spinners import Spinners
 from terminal_input import read_message
 from rich.console import Console
-from rich.markdown import Markdown
+from rich.markdown import CodeBlock, Markdown
+from rich.syntax import Syntax
 
 CYAN = "\033[36m"
 GRAY = "\033[90m"
@@ -62,9 +63,30 @@ def completed_text(response):
     return response.output_text
 
 
+class CopyableCodeBlock(CodeBlock):
+    """Keep code lines intact so terminal selections copy usable source."""
+
+    def __rich_console__(self, console, options):
+        code = Syntax(
+            str(self.text), self.lexer_name, theme=self.theme,
+            background_color='default',
+        ).highlight(str(self.text))
+        code.justify = 'default'
+        code.no_wrap = True
+        code.overflow = 'ignore'
+        code.end = ''
+        yield code
+
+
+class TerminalMarkdown(Markdown):
+    elements = {**Markdown.elements, 'fence': CopyableCodeBlock,
+                'code_block': CopyableCodeBlock}
+
+
 def print_assistant_output(text):
     if MARKDOWN:
-        console.print(Markdown(text))
+        # Let the terminal soft-wrap long code lines without adding newlines.
+        console.print(TerminalMarkdown(text), crop=False)
     else:
         print(f"{CYAN}{text}{RESET}")
 

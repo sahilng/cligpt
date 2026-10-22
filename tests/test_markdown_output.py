@@ -48,3 +48,19 @@ class MarkdownOutputTest(unittest.TestCase):
             with self.subTest(text=text[:10]):
                 plain = Text.from_ansi(self.render(text, 40)).plain
                 self.assertEqual(''.join(plain.split()).count('marker'), 40)
+
+    def test_code_preserves_indentation_blank_lines_and_shell_continuations(self):
+        code = 'for file in *.txt; do\n    printf "%s\\n" "$file"\n\ndone\nprintf "%s" \\\n    "finished"\n'
+        for width in (20, 80):
+            with self.subTest(width=width):
+                rendered = self.render('```sh\n' + code + '```', width)
+                self.assertEqual(Text.from_ansi(rendered).plain, code)
+
+    def test_long_code_line_has_no_inserted_line_breaks_or_padding(self):
+        code = 'echo "' + 'long argument ' * 20 + '"\n'
+        plain = Text.from_ansi(self.render('```sh\n' + code + '```', 40)).plain
+        self.assertEqual(plain, code)
+
+    def test_indented_markdown_code_blocks_are_copyable(self):
+        plain = Text.from_ansi(self.render('    echo first\n    echo second\n', 40)).plain
+        self.assertEqual(plain, 'echo first\necho second\n')

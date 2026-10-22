@@ -12,6 +12,8 @@
 
 Set `MARKDOWN=false` to disable terminal markdown rendering. When `STREAM=true` and markdown rendering is enabled, responses render after completion so lists, code blocks, and tables format correctly.
 
+Code blocks render without extra padding and preserve their original line breaks and indentation for copying into a shell. Long code lines wrap visually in the terminal without inserting extra newlines.
+
 Set `REASONING_EFFORT` to a value supported by your model, such as `low`, `medium`, or `high`. If it is missing or blank, the app uses `medium`.
 
 If the API key is missing, the CLI asks for it without echoing it or adding it to line-editing history. Request failures return you to the prompt; failed or incomplete turns are excluded from conversation context.
