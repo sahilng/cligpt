@@ -11,6 +11,7 @@ from rich.markdown import CodeBlock, Markdown
 from rich.syntax import Syntax
 
 CYAN = "\033[36m"
+MAGENTA = "\033[35m"
 GRAY = "\033[90m"
 RESET = "\033[0m"
 
@@ -143,7 +144,7 @@ def main():
         api_key = OPENAI_API_KEY or getpass('OPENAI_API_KEY=')
         model = MODEL or input('MODEL=')
         with OpenAI(api_key=api_key) as client:
-            print(f'{GRAY}{model} {REASONING_EFFORT}{RESET}')
+            print(f'{CYAN}{model} {MAGENTA}{REASONING_EFFORT}{RESET}')
             print(f'{GRAY}Enter twice to submit\n'
                   f'Ctrl-C to exit{RESET}')
             messages = []
